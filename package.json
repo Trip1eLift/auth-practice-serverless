@@ -1,0 +1,17 @@
+{
+    "name": "template-app",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "initiate": "npm install && cd ./frontend && npm install",
+        "start": "concurrently --kill-others \"npm run database\" \"npm run backend\" \"npm run frontend\"",
+        "frontend": "cd ./frontend && npm start",
+        "backend": "cd ./backend && sam local start-api -p 8080",
+        "database": "cd ./database && docker-compose up"
+    },
+    "author": "Trip1eLift",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^7.1.0"
+    }
+}
