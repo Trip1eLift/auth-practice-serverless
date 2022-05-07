@@ -6,7 +6,7 @@
         "initiate": "npm install && cd ./frontend && npm install",
         "start": "concurrently --kill-others \"npm run database\" \"npm run backend\" \"npm run frontend\"",
         "frontend": "cd ./frontend && npm start",
-        "backend": "cd ./backend && sam local start-api -p 8080",
+        "backend": "cd ./backend && npm start",
         "database": "cd ./database && docker-compose up"
     },
     "author": "Trip1eLift",

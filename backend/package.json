@@ -1,0 +1,11 @@
+{
+    "name": "simplify-start",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "start": "echo y | sam build && sam local start-api -p 8080 --env-vars env.json --debug"
+    },
+    "author": "Trip1eLift",
+    "license": "ISC",
+    "dependencies": {}
+}

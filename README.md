@@ -9,6 +9,9 @@ AWS CLI + SAM CLI
 
 Docker
 
+The backend endpoint to database only works on windows for now.
+`Due to: host.docker.internal in backend/template.yaml`
+
 ## Procedures:
 
 0. Prerequist: A relatively new version of Node and NPM

@@ -1,0 +1,1 @@
+(curl http://localhost:8080/seed -UseBasicParsing | ConvertFrom-Json).result | ConvertTo-Json

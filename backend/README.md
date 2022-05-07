@@ -72,8 +72,8 @@ backend1$ sam local invoke HelloWorldFunction --event events/event.json
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
 
 ```bash
-backend1$ sam local start-api
-backend1$ curl http://localhost:3000/
+backend1$ sam local start-api -p 8080
+backend1$ curl http://localhost:8080/hello
 ```
 
 The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
