@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import AWS, { DynamoDB } from 'aws-sdk';
 const jwt = require('jsonwebtoken');
-//const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 /**
  *
@@ -49,7 +49,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
         const result = await getEmail(email);
         const hashedPassword = result.Item!.password!;
 
-        if (true) { //if (await compare(password, hashedPassword)) {
+        if (bcrypt.compareSync(password + process.env.SECRET_KEY, hashedPassword)) {
             const token = jwt.sign({email: email}, process.env.SECRET_KEY!, { algorithm: 'HS256', expiresIn: 30 });
             response = {
                 statusCode: 200,

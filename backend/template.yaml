@@ -13,6 +13,7 @@ Globals:
       Variables:
         REGION: us-east-1
         DYNAMODB_ENDPOINT: http://host.docker.internal:8000
+        SALT: 7
         SECRET_KEY:
 
 Resources:

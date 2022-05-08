@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import AWS, { DynamoDB } from 'aws-sdk';
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 /**
  *
@@ -106,7 +106,7 @@ async function insertUser(email: string, accessLevel: string, name: string ,unha
                 email: email,
                 accessLevel: accessLevel,
                 name: name,
-                password: await hashPassword(unhashPassword),
+                password: bcrypt.hashSync(unhashPassword + process.env.SECRET_KEY, Number(process.env.SALT)),
                 dateOfBirth: dateOfBirth.toDateString()
             }
         };
@@ -121,17 +121,17 @@ async function insertUser(email: string, accessLevel: string, name: string ,unha
     return promise;
 }
 
-function hashPassword(unhashPassword: string): Promise<string> {
-    const promise = new Promise<string>((resolve, reject) => {
-        bcrypt.hash(unhashPassword, process.env.SECRET_KEY, (err: any, hash: any) => {
-            if (err)
-                reject(err);
-            else
-                resolve(hash);
-        });
-    });
-    return promise;
-}
+// function hashPassword(unhashPassword: string): Promise<string> {
+//     const promise = new Promise<string>((resolve, reject) => {
+//         bcrypt.hash(unhashPassword, process.env.SECRET_KEY, (err: any, hash: any) => {
+//             if (err)
+//                 reject(err);
+//             else
+//                 resolve(hash);
+//         });
+//     });
+//     return promise;
+// }
 
 async function showUsers(): Promise<any> {
     const params: any = {
