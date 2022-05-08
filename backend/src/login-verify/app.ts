@@ -20,47 +20,46 @@ const headers = {
 };
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    let response: APIGatewayProxyResult;
     if (event.httpMethod == "OPTIONS") {
-        response = {
+        return {
             statusCode: 200,
             body: JSON.stringify({
                 message: 'preflight'
             }),
             headers: headers
-        };
-        return response;
+        } as APIGatewayProxyResult;
     }
     
     try {
-        const preToken = event.headers['X-Access-Token'];
-        let decoded = undefined;
-        if (preToken)
-            decoded = await verifyToken(preToken);
+        const failToVerify = {
+            statusCode: 400,
+            body: JSON.stringify({
+                message: 'not login',
+                login: false
+            }),
+            headers: headers
+        } as APIGatewayProxyResult;
 
-        if (decoded) {
-            const newToken = jwt.sign({email: decoded.email}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
-            response = {
-                statusCode: 200,
-                body: JSON.stringify({
-                    message: 'refresh token',
-                    login: true
-                }),
-                headers: { ...headers, 'X-Access-Token': newToken }
-            };
-        } else {
-            response = {
-                statusCode: 400,
-                body: JSON.stringify({
-                    message: 'not login',
-                    login: false
-                }),
-                headers: headers
-            };
-        }
+        const preToken = event.headers['X-Access-Token'];
+        if (preToken == undefined)
+            return failToVerify;
+        
+        const decoded = await verifyToken(preToken);
+        if (decoded == undefined)
+            return failToVerify;
+
+        const newToken = jwt.sign({email: decoded.email}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                message: 'refresh token',
+                login: true
+            }),
+            headers: { ...headers, 'X-Access-Token': newToken }
+        } as APIGatewayProxyResult;
     } catch (err) {
         console.log(err);
-        response = {
+        return {
             statusCode: 500,
             body: JSON.stringify({
                 message: 'some error happened',
@@ -68,9 +67,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 error: err
             }),
             headers: headers
-        };
+        } as APIGatewayProxyResult;
     }
-    return response;
 };
 
 async function verifyToken(token: string): Promise<any> {

@@ -31,57 +31,58 @@ const headers = {
 };
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    let response: APIGatewayProxyResult;
     if (event.httpMethod == "OPTIONS") {
-        response = {
+        return {
             statusCode: 200,
             body: JSON.stringify({
                 message: 'preflight'
             }),
             headers: headers
-        };
-        return response;
+        } as APIGatewayProxyResult;
     }
     
     try {
-        const email = event.queryStringParameters!.email;
-        const password = event.queryStringParameters!.password;
-        if (email == undefined || password == undefined) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({
-                    message: 'request does not meet the requirements of parameters',
-                    login: false
-                }),
-                headers: headers
-            };
-        }
-        const result = await getEmail(email);
-        const hashedPassword = result.Item!.password;
+        const failToLogin = {
+            statusCode: 400,
+            body: JSON.stringify({
+                message: 'email or password do not match any account',
+                login: false
+            }),
+            headers: headers
+        } as APIGatewayProxyResult;
 
+        if (event.body == undefined)
+            return failToLogin;
+        const payload = JSON.parse(event.body!);
+        const email = payload.email;
+        const password = payload.password;
+        if (email == undefined || password == undefined)
+            return failToLogin;
+        const result = await getEmail(email);
+        if (result.Item == undefined)
+            return failToLogin;
+        const hashedPassword = result.Item.password;
+        
         if (bcrypt.compareSync(password + process.env.SECRET_KEY, hashedPassword)) {
-            const token = jwt.sign({email: email}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
-            response = {
+            const token = jwt.sign({email: result.Item.email, accessLevel: result.Item.accessLevel, name: result.Item.name}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
+            return {
                 statusCode: 200,
                 body: JSON.stringify({
                     message: 'login',
-                    login: true
+                    login: true,
+                    email: result.Item.email,
+                    name: result.Item.name,
+                    accessLevel: result.Item.accessLevel,
+                    dateOfBirth: result.Item.dateOfBirth
                 }),
                 headers: { ...headers, 'X-Access-Token': token }
-            };
+            } as APIGatewayProxyResult;
         } else {
-            response = {
-                statusCode: 400,
-                body: JSON.stringify({
-                    message: 'failed to login',
-                    login: false
-                }),
-                headers: headers
-            };
+            return failToLogin;
         }
     } catch (err) {
         console.log(err);
-        response = {
+        return {
             statusCode: 500,
             body: JSON.stringify({
                 message: 'some error happened',
@@ -89,9 +90,8 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 error: err
             }),
             headers: headers
-        };
+        } as APIGatewayProxyResult;
     }
-    return response;
 };
 
 async function getEmail(email: string): Promise<DynamoDB.DocumentClient.GetItemOutput> {
