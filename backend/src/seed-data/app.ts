@@ -1,15 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import AWS, { DynamoDB } from 'aws-sdk';
-import crypto from 'crypto';
-
-AWS.config.update({
-    region: process.env.REGION
-});
-
-const ddb = new DynamoDB.DocumentClient({
-    apiVersion: '2012-08-10',
-    endpoint: process.env.DYNAMODB_ENDPOINT
-});
+const bcrypt = require('bcrypt');
 
 /**
  *
@@ -21,9 +12,36 @@ const ddb = new DynamoDB.DocumentClient({
  *
  */
 
+AWS.config.update({
+    region: process.env.REGION
+});
+
+const ddb = new DynamoDB.DocumentClient({
+    apiVersion: '2012-08-10',
+    endpoint: process.env.DYNAMODB_ENDPOINT
+});
+
+const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "OPTIONS,GET",
+    "Access-Control-Expose-Headers": "Content-Type"
+};
+
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     let response: APIGatewayProxyResult;
-    console.log(process.env.SECRET_KEY);
+    if (event.httpMethod == "OPTIONS") {
+        response = {
+            statusCode: 200,
+            body: JSON.stringify({
+                message: 'preflight'
+            }),
+            headers: headers
+        };
+        return response;
+    }
+    
     try {
         if (Object.keys(await getEmail("master@ctpc.com")).length == 0) {
             await insertUser("master@ctpc.com", "admin", "Joseph", "hardpassword", new Date(1999, 6-1, 9));
@@ -41,6 +59,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 message: 'seed data',
                 result: scanTable
             }),
+            headers: headers
         };
     } catch (err) {
         console.log(err);
@@ -50,6 +69,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 message: 'some error happened',
                 error: err
             }),
+            headers: headers
         };
     }
 
@@ -66,7 +86,6 @@ async function getEmail(email: string): Promise<DynamoDB.DocumentClient.GetItemO
         };
         ddb.get(params, (err, result) => {
             if (!err) {
-                console.log(result);
                 resolve(result);
             } else {
                 reject(err);
@@ -76,8 +95,8 @@ async function getEmail(email: string): Promise<DynamoDB.DocumentClient.GetItemO
     return promise;
 }
 
-async function insertUser(email: string, accessLevel: string, name: string ,unHashPassword: string, dateOfBirth: Date): Promise<boolean>{
-    const promise = new Promise<boolean>((resolve, reject) => {
+async function insertUser(email: string, accessLevel: string, name: string ,unhashPassword: string, dateOfBirth: Date): Promise<boolean>{
+    const promise = new Promise<boolean>(async (resolve, reject) => {
         if (accessLevel !== "admin" && accessLevel !== "write" && accessLevel !== "read") {
             reject("unsupported value for accessLevel");
         }
@@ -87,7 +106,7 @@ async function insertUser(email: string, accessLevel: string, name: string ,unHa
                 email: email,
                 accessLevel: accessLevel,
                 name: name,
-                password: hashPassword(unHashPassword),
+                password: await hashPassword(unhashPassword),
                 dateOfBirth: dateOfBirth.toDateString()
             }
         };
@@ -102,12 +121,16 @@ async function insertUser(email: string, accessLevel: string, name: string ,unHa
     return promise;
 }
 
-function hashPassword(unHashPassword: string): string {
-    return crypto.scryptSync(unHashPassword, process.env.SECRET_KEY || "super_salt", 64).toString('hex');
-}
-
-function compareHash(unHashPassword: string, hashPassword: string): boolean{
-    return hashPassword == (crypto.scryptSync(unHashPassword, process.env.SECRET_KEY || "super_salt", 64).toString('hex'));
+function hashPassword(unhashPassword: string): Promise<string> {
+    const promise = new Promise<string>((resolve, reject) => {
+        bcrypt.hash(unhashPassword, process.env.SECRET_KEY, (err: any, hash: any) => {
+            if (err)
+                reject(err);
+            else
+                resolve(hash);
+        });
+    });
+    return promise;
 }
 
 async function showUsers(): Promise<any> {
