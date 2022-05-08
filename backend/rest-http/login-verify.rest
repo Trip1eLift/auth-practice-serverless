@@ -1,0 +1,2 @@
+GET http://localhost:8080/login-verify
+x-access-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1hc3RlckBjdHBjLmNvbSIsImlhdCI6MTY1MjAxNzE1NCwiZXhwIjoxNjUyMDE3MTg0fQ.pvsn3lf1nZ1eWOVWOgBQIgAQ8rdPkqc1MyVzB2f3iKU

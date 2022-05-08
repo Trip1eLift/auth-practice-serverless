@@ -14,9 +14,9 @@ const jwt = require('jsonwebtoken');
 const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,x-access-token",
+    "Access-Control-Allow-Headers": "Content-Type,X-Access-Token",
     "Access-Control-Allow-Methods": "OPTIONS,GET",
-    "Access-Control-Expose-Headers": "Content-Type,x-access-token"
+    "Access-Control-Expose-Headers": "Content-Type,X-Access-Token"
 };
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -33,18 +33,20 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     }
     
     try {
-        const token = event.headers['x-access-token']!;
-        const decoded = await verifyToken(token);
+        const preToken = event.headers['X-Access-Token'];
+        let decoded = undefined;
+        if (preToken)
+            decoded = await verifyToken(preToken);
 
         if (decoded) {
-            const token = jwt.sign({email: decoded.email!}, process.env.SECRET_KEY!, { algorithm: 'HS256', expiresIn: 30 });
+            const newToken = jwt.sign({email: decoded.email}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
             response = {
                 statusCode: 200,
                 body: JSON.stringify({
                     message: 'refresh token',
                     login: true
                 }),
-                headers: { ...headers, 'x-access-token': token }
+                headers: { ...headers, 'X-Access-Token': newToken }
             };
         } else {
             response = {
@@ -73,11 +75,14 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
 
 async function verifyToken(token: string): Promise<any> {
     const promise = new Promise<any>((resolve, reject) => {
-        jwt.verify(token, process.env.SECRET_KEY!, (err: any, decoded: any) => {
-            if (!err && typeof(decoded) != 'string')
-                resolve(decoded!)
+        jwt.verify(token, process.env.SECRET_KEY, (err: any, decoded: any) => {
+            if (err) {
+                console.log(err);
+                resolve(undefined);
+            } else if (typeof(decoded) != 'string' && decoded != undefined)
+                resolve(decoded);
             else
-                reject(false);
+                reject("unexpected decoded type");
         });
     });
     return promise;

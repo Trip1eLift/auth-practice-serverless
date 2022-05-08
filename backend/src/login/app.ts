@@ -25,9 +25,9 @@ const ddb = new DynamoDB.DocumentClient({
 const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,x-access-token",
+    "Access-Control-Allow-Headers": "Content-Type,X-Access-Token",
     "Access-Control-Allow-Methods": "OPTIONS,GET",
-    "Access-Control-Expose-Headers": "Content-Type,x-access-token"
+    "Access-Control-Expose-Headers": "Content-Type,X-Access-Token"
 };
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -44,20 +44,30 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     }
     
     try {
-        const email = event.queryStringParameters!.email!;
-        const password = event.queryStringParameters!.password!;
+        const email = event.queryStringParameters!.email;
+        const password = event.queryStringParameters!.password;
+        if (email == undefined || password == undefined) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'request does not meet the requirements of parameters',
+                    login: false
+                }),
+                headers: headers
+            };
+        }
         const result = await getEmail(email);
-        const hashedPassword = result.Item!.password!;
+        const hashedPassword = result.Item!.password;
 
         if (bcrypt.compareSync(password + process.env.SECRET_KEY, hashedPassword)) {
-            const token = jwt.sign({email: email}, process.env.SECRET_KEY!, { algorithm: 'HS256', expiresIn: 30 });
+            const token = jwt.sign({email: email}, process.env.SECRET_KEY, { algorithm: 'HS256', expiresIn: 30 });
             response = {
                 statusCode: 200,
                 body: JSON.stringify({
                     message: 'login',
                     login: true
                 }),
-                headers: { ...headers, 'x-access-token': token }
+                headers: { ...headers, 'X-Access-Token': token }
             };
         } else {
             response = {
@@ -102,15 +112,3 @@ async function getEmail(email: string): Promise<DynamoDB.DocumentClient.GetItemO
     });
     return promise;
 }
-
-// async function compare(password: string, hashedPassword: string): Promise<boolean> {
-//     const promise = new Promise<boolean>((resolve, reject) => {
-//         bcrypt.compare(password, hashedPassword, (err: any, result: any) => {
-//             if (err)
-//                 reject(err);
-//             else
-//                 resolve(result);
-//         });
-//     });
-//     return promise;
-// }

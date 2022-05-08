@@ -121,18 +121,6 @@ async function insertUser(email: string, accessLevel: string, name: string ,unha
     return promise;
 }
 
-// function hashPassword(unhashPassword: string): Promise<string> {
-//     const promise = new Promise<string>((resolve, reject) => {
-//         bcrypt.hash(unhashPassword, process.env.SECRET_KEY, (err: any, hash: any) => {
-//             if (err)
-//                 reject(err);
-//             else
-//                 resolve(hash);
-//         });
-//     });
-//     return promise;
-// }
-
 async function showUsers(): Promise<any> {
     const params: any = {
         TableName: 'users'
